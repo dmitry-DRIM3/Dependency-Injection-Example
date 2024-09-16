@@ -28,8 +28,6 @@
 - `RangeWeaponConfig.cs`
 - `SimpleWeaponConfig.cs`
 - `Injector.cs`
-- `Enemy.cs`
-- `Bullet.cs`
 
 С помощью паттерна Dependency Injection решаются проблемы зависимостей между этими скриптами.
 
@@ -64,7 +62,7 @@
      return (DamageType)Random.Range(0, values.Length);
  }
 ```
-В этом скрипте есть зависимость с - `DamageCalculateController`. Воспользуемся паттерном DI:
+В этом скрипте есть зависимость с `DamageCalculateController`. Воспользуемся паттерном DI:
 ```csharp
  public void Inject(DamageCalculateController damageCalculateController)
  {
@@ -93,7 +91,7 @@ private IDamageCalculator SelectCalculator(DamageType damageType)
      }
 }
 ```
-В этом скрипте так же есть зависимости с - `SimpleWeaponConfig.cs` и - `RangeWeaponConfig.cs`. Воспользуемся паттерном DI:
+В этом скрипте так же есть зависимости с `SimpleWeaponConfig.cs` и `RangeWeaponConfig.cs`. Воспользуемся паттерном DI:
 ```csharp
 public void Inject(SimpleWeaponConfig simpleWeaponConfig, RangeWeaponConfig rangeWeaponConfig)
 {
@@ -101,3 +99,63 @@ public void Inject(SimpleWeaponConfig simpleWeaponConfig, RangeWeaponConfig rang
   _rangeWeaponConfig = rangeWeaponConfig;
 }
 ```
+## Рассмотрим разные типы урона скрипты: DamageCalculatorRange.cs и DamageCalculatorSimple.cs
+Оба этих скрипта имплементированы от IDamageCalculator следовательно мы объявляем контракт методом "float CalculateDamage();" что и позволяет воплотить паттерн DI 
+```csharp
+//Реализация метода в DamageCalculatorSimple
+public float CalculateDamage()
+{
+  return _simpleWeaponConfig.Damage;
+}
+```
+
+```csharp
+//Реализация метода в DamageCalculatorRange
+ public float CalculateDamage()
+    {
+        return Random.Range(_rangeWeaponConfig.MinDamage, _rangeWeaponConfig.MaxDamage);
+    }
+```
+Для того что бы удобно было работать с данными различных типов урона я создал для каждого конфиг "ScriptableObject"
+```csharp
+[CreateAssetMenu(fileName = "RangeWeaponConfig", menuName = "DIExample/WeaponConfigs/RangeWeaponConfig")]
+public class RangeWeaponConfig : ScriptableObject
+{
+    public float MaxDamage => _maxDamage;
+    public float MinDamage => _minDamage;
+
+    [SerializeField] private float _maxDamage;
+    [SerializeField] private float _minDamage;
+}
+```
+```csharp
+[CreateAssetMenu(fileName = "SimpleWeaponConfig", menuName = "DIExample/WeaponConfigs/SimpleWeaponConfig")]
+public class SimpleWeaponConfig : ScriptableObject
+{
+    public float Damage => _damage;
+
+    [SerializeField] private float _damage;
+}
+```
+## Скрипт Injector.cs 
+С помощью Injector-а я уменьшаю связанность между компонентами для которых нужны зависимости.
+Иницилизируя зависимости централизованно и в нужном мне порядке.
+```csharp
+public class Injector : MonoBehaviour
+{
+    [SerializeField] private PlayerShooting _playerShooting;
+
+    [SerializeField] private RangeWeaponConfig _rangeWeaponConfig;
+    [SerializeField] private SimpleWeaponConfig _simpleWeaponConfig;
+
+    private DamageCalculateController _damageCalculateController;
+
+    private void Awake()
+    {
+        _damageCalculateController = new DamageCalculateController();
+        _damageCalculateController.Inject(_simpleWeaponConfig, _rangeWeaponConfig);
+        _playerShooting.Inject(_damageCalculateController);
+    }
+}
+```
+## Заключение 
