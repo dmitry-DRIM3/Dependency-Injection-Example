@@ -24,10 +24,80 @@
 
 ## В проекте присутствуют несколько основных скриптов:
 - `PlayerShooting.cs`
-- `Enemy.cs`
-- `Bullet.cs`
 - `DamageCalculateController.cs`
 - `RangeWeaponConfig.cs`
 - `SimpleWeaponConfig.cs`
+- `Injector.cs`
+- `Enemy.cs`
+- `Bullet.cs`
 
 С помощью паттерна Dependency Injection решаются проблемы зависимостей между этими скриптами.
+
+## Скрипт PlayerShooting.cs
+Этот скрипт нужен для того чтобы делать выстрел в напревлении на ту точку куда пользователь нажал и присвоить пули тип урона.
+```csharp
+ private void Shoot()
+ {
+     Ray ray = _playerCamera.ScreenPointToRay(Input.mousePosition);
+     RaycastHit hit;
+
+     Vector3 shootDirection;
+
+     if (Physics.Raycast(ray, out hit, _shootingRange))
+     {
+         shootDirection = (hit.point - _playerCamera.transform.position).normalized;
+     }
+     else
+     {
+         shootDirection = _playerCamera.transform.forward;
+     }
+
+     Bullet bullet = Instantiate(_bulletPrefab, _playerCamera.transform.position, Quaternion.LookRotation(shootDirection)).GetComponent<Bullet>(); // It is better to use a pool of objects
+
+     DamageType damageType = RandomSelectDamageType();
+     bullet.Init(_damageCalculateController.DamageCalculate(damageType));
+ }
+
+ private DamageType RandomSelectDamageType()
+ {
+     Array values = Enum.GetValues(typeof(DamageType));
+     return (DamageType)Random.Range(0, values.Length);
+ }
+```
+В этом скрипте есть зависимость с - `DamageCalculateController`. Воспользуемся паттерном DI:
+```csharp
+ public void Inject(DamageCalculateController damageCalculateController)
+ {
+     _damageCalculateController = damageCalculateController;
+ }
+```
+## Скрипт DamageCalculateController.cs
+Рассмотрим как расчитывается урон
+```csharp
+public float DamageCalculate(DamageType damageType)
+{
+  IDamageCalculator damageCalculator = SelectCalculator(damageType);
+  return damageCalculator.CalculateDamage();
+}
+
+private IDamageCalculator SelectCalculator(DamageType damageType)
+{
+     switch (damageType)
+     {
+         case DamageType.Simple:
+             return new DamageCalculatorSimple(_simpleWeaponConfig);
+         case DamageType.Range:
+             return new DamageCalculatorRange(_rangeWeaponConfig);
+         default:
+             return new DamageCalculatorSimple(_simpleWeaponConfig);
+     }
+}
+```
+В этом скрипте так же есть зависимости с - `SimpleWeaponConfig.cs` и - `RangeWeaponConfig.cs`. Воспользуемся паттерном DI:
+```csharp
+public void Inject(SimpleWeaponConfig simpleWeaponConfig, RangeWeaponConfig rangeWeaponConfig)
+{
+  _simpleWeaponConfig = simpleWeaponConfig;
+  _rangeWeaponConfig = rangeWeaponConfig;
+}
+```
