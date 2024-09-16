@@ -23,11 +23,11 @@
 В целом, Dependency Injection представляет собой мощный паттерн проектирования, который обладает множеством преимуществ, но необходимо балансировать его использование и учитывать потенциальные недостатки при разработке приложений.
 
 ## В проекте присутствуют несколько основных скриптов:
+- `PlayerShooting.cs`
+- `Enemy.cs`
+- `Bullet.cs`
+- `DamageCalculateController.cs`
+- `RangeWeaponConfig.cs`
+- `SimpleWeaponConfig.cs`
 
-PlayerShooting.cs
-Enemy.cs
-Bullet.cs
-DamageCalculateController.cs
-RangeWeaponConfig.cs
-SimpleWeaponConfig.cs
 С помощью паттерна Dependency Injection решаются проблемы зависимостей между этими скриптами.
